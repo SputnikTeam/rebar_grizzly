@@ -3,22 +3,15 @@
 -compile(export_all).
 
 -record(cfg, {
-          application,
           nodes
          }).
 
 -define(GRIZZLY_MODULE, grizzly).
 
 read_config(Config) ->
-    case proplists:get_value(grizzly, Config) of
-        undefined ->
-            no_config;
-        GrizzlyOptions ->
-            {ok, #cfg{
-               application = proplists:get_value(app_name, GrizzlyOptions),
-               nodes       = proplists:get_value(nodes, GrizzlyOptions)
-              }}
-    end.
+    {ok, #cfg{
+        nodes = proplists:get_value(nodes, Config)
+    }}.
 
 deploy(NodeName) ->
     rebar_log:log(info, "deploy: ~s~n", [NodeName]),
@@ -34,9 +27,6 @@ deploy_module(NodeName, Module) ->
     {Module, Binary, Filename} = code:get_object_code(Module),
     {module, Module} = rpc_call(NodeName, code, load_binary, [Module, Filename, Binary]),
     rebar_log:log(info, "~s - loaded~n", [NodeName]).
-
-grizzly_app(#cfg{application = App}) ->
-    App.
 
 grizzly_nodes(#cfg{nodes = Nodes}) ->
     Nodes.

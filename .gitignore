@@ -1,5 +1,6 @@
 *.beam
 rebar
+.rebar
 *~
 *.orig
 .*.swp
