@@ -5,4 +5,4 @@
               {applications,[kernel,stdlib]},
               {mod,{rebar_hotsync_plugin_app,[]}},
               {env,[]},
-              {modules,[grizzly,grizzly_utils,rebar_hotsync_plugin]}]}.
+              {modules,[rebar_hotsync_plugin]}]}.

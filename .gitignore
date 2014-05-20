@@ -1,1 +1,12 @@
-ebin/*.beam
+*.beam
+rebar
+*~
+*.orig
+.*.swp
+rt.work
+.hgignore
+.test
+dialyzer_warnings
+rebar.cmd
+.eunit
+deps
