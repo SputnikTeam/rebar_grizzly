@@ -13,3 +13,7 @@ rebar.cmd
 deps
 ebin/*.app
 dummy/ebin/*.app
+.rebar.config
+*/#*
+.#*
+erl_crash.dump

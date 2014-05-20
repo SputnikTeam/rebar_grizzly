@@ -23,14 +23,21 @@ read_config(ConfigOriginal, AppSrcFile) ->
             {AppName, AppData} = rebar_config:get_xconf(Config, XconfKey),
             rebar_log:log(debug, "AppData: ~p~n", [AppData]),
 
-            Modules = proplists:get_value(modules, AppData, []),
-            Nodes = proplists:get_value(nodes, GrizzlyOptions, []),
+            case lists:member(AppName, proplists:get_value(apply_for_apps, GrizzlyOptions)) of
+                true ->
+                    rebar_log:log(info, "grizzly start work with ~s application", [AppName]),
+                    Modules = proplists:get_value(modules, AppData, []),
+                    Nodes = proplists:get_value(nodes, GrizzlyOptions, []),
 
-            {ok, #cfg{
-                app_name = AppName,
-                nodes = Nodes,
-                modules = Modules
-            }}
+                    {ok, #cfg{
+                            app_name = AppName,
+                            nodes = Nodes,
+                            modules = Modules
+                           }};
+                false ->
+                    rebar_log:log(info, "grizzly don't eat ~s application~n", [AppName]),
+                    no_grizzly
+            end
     end.
 
 deploy(NodeName) ->
@@ -45,6 +52,7 @@ deploy(NodeName) ->
 
 deploy_module(NodeName, Module) ->
     {Module, Binary, Filename} = code:get_object_code(Module),
+    rpc_call(NodeName, code, purge, [Module]),
     {module, Module} = rpc_call(NodeName, code, load_binary, [Module, Filename, Binary]),
     rebar_log:log(info, "~s - loaded~n", [NodeName]).
 
@@ -57,13 +65,30 @@ grizzly_nodes(#cfg{nodes = Nodes}) ->
 grizzly_modules(#cfg{modules = Modules}) ->
     Modules.
 
+get_remote_modules_info(Node, Modules) ->
+    rpc_call(Node, ?GRIZZLY_MODULE, get_modules_info, [Modules]).
+
+get_local_modules_info(Modules) ->
+    ?GRIZZLY_MODULE:get_modules_info(Modules).
+
+sync_application_modules(#cfg{app_name = AppName}, Node, Modules) ->
+    ModulesCode = [code:get_object_code(Module) || Module <- Modules],
+    ok = rpc_call(Node, ?GRIZZLY_MODULE, sync_application_modules, [AppName, ModulesCode]).
+
 check_grizzly_available(Node) ->
     rebar_log:log(info, "grizzly deploy name: ~s~n", [?GRIZZLY_MODULE]),
 
-    case rpc_call(Node, code, ensure_loaded, [?GRIZZLY_MODULE]) of
-        {module, _} ->
-            ok;
-        {error, _} ->
+    try
+        rpc_call(Node, ?GRIZZLY_MODULE, module_info, [compile])
+    of
+        RemoteModuleInfo ->
+            case ?GRIZZLY_MODULE:module_info(compile) of
+                RemoteModuleInfo ->
+                    ok;
+                _ ->
+                    not_available
+            end
+    catch _:_Reason ->
             not_available
     end.
 
@@ -73,7 +98,7 @@ start_net_kernel(NodeName) ->
             ok;
         {error, {already_started, _}} ->
             ok;
-        {error, Reason} ->
+        {error, Reason} -> 
             rebar_log:log(error, "net_kernel start error: ~p~n", [Reason]),
             erlang:error({start_net_kernel, Reason})
     end.
@@ -84,7 +109,7 @@ rpc_call(Node, M, F, A) ->
 rpc_call(Node, M, F, A, Timeout) ->
     case rpc:call(Node, M, F, A, Timeout) of
         {badrpc, Reason} ->
-            rebar_log:error("grizzly badrpc: ~p~n", [Reason]),
+            rebar_log:log(error, "grizzly badrpc: ~p~n", [Reason]),
             erlang:error(Reason);
         Result ->
             Result
