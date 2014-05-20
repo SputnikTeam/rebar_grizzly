@@ -11,3 +11,5 @@ dialyzer_warnings
 rebar.cmd
 .eunit
 deps
+ebin/*.app
+dummy/ebin/*.app

@@ -3,15 +3,35 @@
 -compile(export_all).
 
 -record(cfg, {
-          nodes
-         }).
+    app_name,
+    nodes,
+    modules
+}).
 
 -define(GRIZZLY_MODULE, grizzly).
 
-read_config(Config) ->
-    {ok, #cfg{
-        nodes = proplists:get_value(nodes, Config)
-    }}.
+read_config(ConfigOriginal, AppSrcFile) ->
+    rebar_log:log(debug, "AppSrcFile: ~p~n", [AppSrcFile]),
+    case rebar_config:get(ConfigOriginal, grizzly, no_grizzly) of
+        no_grizzly ->
+            no_grizzly;
+        GrizzlyOptions ->
+            rebar_log:log(debug, "GrizzlyOptions: ~p~n", [GrizzlyOptions]),
+            AppFile = rebar_app_utils:app_src_to_app(AppSrcFile),
+            {Config, AppName}  = rebar_app_utils:app_name(ConfigOriginal, AppFile),
+            XconfKey = {appfile, {app_file, AppFile}},
+            {AppName, AppData} = rebar_config:get_xconf(Config, XconfKey),
+            rebar_log:log(debug, "AppData: ~p~n", [AppData]),
+
+            Modules = proplists:get_value(modules, AppData, []),
+            Nodes = proplists:get_value(nodes, GrizzlyOptions, []),
+
+            {ok, #cfg{
+                app_name = AppName,
+                nodes = Nodes,
+                modules = Modules
+            }}
+    end.
 
 deploy(NodeName) ->
     rebar_log:log(info, "deploy: ~s~n", [NodeName]),
@@ -28,8 +48,14 @@ deploy_module(NodeName, Module) ->
     {module, Module} = rpc_call(NodeName, code, load_binary, [Module, Filename, Binary]),
     rebar_log:log(info, "~s - loaded~n", [NodeName]).
 
+grizzly_app(#cfg{app_name = AppName}) ->
+    AppName.
+
 grizzly_nodes(#cfg{nodes = Nodes}) ->
     Nodes.
+
+grizzly_modules(#cfg{modules = Modules}) ->
+    Modules.
 
 check_grizzly_available(Node) ->
     rebar_log:log(info, "grizzly deploy name: ~s~n", [?GRIZZLY_MODULE]),

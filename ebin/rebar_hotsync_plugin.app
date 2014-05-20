@@ -1,8 +1,0 @@
-{application,rebar_hotsync_plugin,
-             [{description,[]},
-              {vsn,"1"},
-              {registered,[]},
-              {applications,[kernel,stdlib]},
-              {mod,{rebar_hotsync_plugin_app,[]}},
-              {env,[]},
-              {modules,[grizzly,grizzly_utils,rebar_hotsync_plugin]}]}.
