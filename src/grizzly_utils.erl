@@ -25,7 +25,7 @@ read_config(ConfigOriginal, AppSrcFile) ->
 
             case lists:member(AppName, proplists:get_value(apply_for_apps, GrizzlyOptions)) of
                 true ->
-                    rebar_log:log(info, "grizzly start work with ~s application", [AppName]),
+                    rebar_log:log(info, "grizzly starts working with ~s application~n", [AppName]),
                     Modules = proplists:get_value(modules, AppData, []),
                     Nodes = proplists:get_value(nodes, GrizzlyOptions, []),
 
@@ -35,13 +35,13 @@ read_config(ConfigOriginal, AppSrcFile) ->
                             modules = Modules
                            }};
                 false ->
-                    rebar_log:log(info, "grizzly don't eat ~s application~n", [AppName]),
+                    rebar_log:log(info, "grizzly doesn't eat ~s application~n", [AppName]),
                     no_grizzly
             end
     end.
 
 deploy(NodeName) ->
-    rebar_log:log(info, "deploy: ~s~n", [NodeName]),
+    rebar_log:log(info, "deploy grizzly to ~s~n", [NodeName]),
     case check_grizzly_available(NodeName) of
         ok ->
             rebar_log:log(info, "~s - already loaded~n", [NodeName]);
@@ -76,7 +76,7 @@ sync_application_modules(#cfg{app_name = AppName}, Node, Modules) ->
     ok = rpc_call(Node, ?GRIZZLY_MODULE, sync_application_modules, [AppName, ModulesCode]).
 
 check_grizzly_available(Node) ->
-    rebar_log:log(info, "grizzly deploy name: ~s~n", [?GRIZZLY_MODULE]),
+    rebar_log:log(debug, "grizzly deploy name: ~s~n", [?GRIZZLY_MODULE]),
 
     try
         rpc_call(Node, ?GRIZZLY_MODULE, module_info, [compile])

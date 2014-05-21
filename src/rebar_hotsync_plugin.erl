@@ -28,11 +28,11 @@ sync_modules(GrizzlyConfig, [Node | NodesTail], Modules) ->
     LocalModulesInfo = grizzly_utils:get_local_modules_info(Modules),
     ModulesForUpload = [element(1, Task) || Task <- LocalModulesInfo -- RemoteModulesInfo],
 
-    rebar_log:log(info, "upload task on '~s':~n\t~p ... ", [Node, ModulesForUpload]),
+    rebar_log:log(info, "upload task on '~s':~n\t~p ... ~n", [Node, ModulesForUpload]),
 
     ok = grizzly_utils:sync_application_modules(GrizzlyConfig, Node, ModulesForUpload),
 
-    rebar_log:log(info, "ok~n", []),
+    rebar_log:log(info, "sync application modules finished~n", []),
 
     sync_modules(GrizzlyConfig, NodesTail, Modules).
 
