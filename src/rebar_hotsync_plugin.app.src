@@ -1,7 +1,0 @@
-{application,rebar_hotsync_plugin,
-             [{description,[]},
-              {vsn,"1"},
-              {registered,[]},
-              {applications,[kernel,stdlib]},
-              {env,[]}
-            ]}.

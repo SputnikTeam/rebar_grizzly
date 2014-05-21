@@ -1,6 +1,10 @@
 -module('45de73ed-8476-4947-be19-7200697325b2').
 
--compile(export_all).
+-export([
+         get_modules_info/1,
+         get_beams_list/1,
+         sync_application_modules/3
+        ]).
 
 get_modules_info(Modules) ->
     lists:sort([{Module, (catch Module:module_info(compile))} || Module <- Modules]).
@@ -41,7 +45,7 @@ copy_modules(BasePath, Modules) ->
       end,
       Modules).
 
-get_beam_list(AppName) ->
+get_beams_list(AppName) ->
     filelib:wildcard(filename:join(ebin_path(AppName), "*.beam")).
 
 ebin_path(AppName) ->

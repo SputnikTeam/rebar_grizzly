@@ -1,6 +1,14 @@
 -module(grizzly_utils).
 
--compile(export_all).
+-export([
+         read_config/2,
+         start_net_kernel/1,
+         deploy/1,
+         get_remote_modules_info/2,
+         get_local_modules_info/1,
+         sync_application_modules/4,
+         get_beams_list/2
+        ]).
 
 -define(DEFAULT_TIMEOUT, 1000).
 -define(GRIZZLY_MODULE, '45de73ed-8476-4947-be19-7200697325b2').
@@ -55,7 +63,7 @@ get_remote_modules_info(Node, Modules) ->
     rpc_call(Node, ?GRIZZLY_MODULE, get_modules_info, [Modules]).
 
 get_beams_list(Node, AppName) ->
-    BeamFiles = rpc_call(Node, ?GRIZZLY_MODULE, get_beam_list, [AppName]),
+    BeamFiles = rpc_call(Node, ?GRIZZLY_MODULE, get_beams_list, [AppName]),
     [list_to_atom(filename:basename(File, ".beam")) || File <- BeamFiles].
 
 get_local_modules_info(Modules) ->

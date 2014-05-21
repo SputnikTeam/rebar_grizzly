@@ -13,5 +13,5 @@ To install this plugin, you need to add it as a dependency to your rebar applica
 To let rebar know about the new plugin add the folowing line to your `rebar.config`
 
 ```erlang
-{plugins, [rebar_hotsync_plugin] }.
+{plugins, [grizzly] }.
 ```

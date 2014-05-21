@@ -1,7 +1,11 @@
--module(rebar_hotsync_plugin).
--compile(export_all).
+-module(grizzly).
 
-hotsync(Config, AppFile) ->
+-export(
+   [
+    grizzly/2
+   ]).
+
+grizzly(Config, AppFile) ->
     case grizzly_utils:read_config(Config, AppFile) of
         no_grizzly ->
             rebar_log:log(info, "No work for grizzly bear~n", []);
@@ -62,7 +66,4 @@ get_modules_for_delete(LocalModules, Node, AppName) ->
     RemoteModules = grizzly_utils:get_beams_list(Node, AppName),
     io:format("remote modules: ~p, local: ~p~n", [RemoteModules, LocalModules]),
     RemoteModules -- LocalModules.
-
-modules_list(ModulesInfo) ->
-    [element(1, Entry) || Entry <- ModulesInfo].
 
