@@ -34,6 +34,11 @@ To let rebar know about the new plugin add the folowing line to your `rebar.conf
 ]}.
 ```
 
+## Usage
+
+`rebar grizzly`
+
+
 ## License
 
 a kind of MIT
