@@ -2,13 +2,8 @@
 
 -compile(export_all).
 
--record(cfg, {
-    app_name,
-    nodes,
-    modules
-}).
-
--define(GRIZZLY_MODULE, grizzly).
+-define(DEFAULT_TIMEOUT, 1000).
+-define(GRIZZLY_MODULE, '45de73ed-8476-4947-be19-7200697325b2').
 
 read_config(ConfigOriginal, AppSrcFile) ->
     rebar_log:log(debug, "AppSrcFile: ~p~n", [AppSrcFile]),
@@ -29,11 +24,11 @@ read_config(ConfigOriginal, AppSrcFile) ->
                     Modules = proplists:get_value(modules, AppData, []),
                     Nodes = proplists:get_value(nodes, GrizzlyOptions, []),
 
-                    {ok, #cfg{
-                            app_name = AppName,
-                            nodes = Nodes,
-                            modules = Modules
-                           }};
+                    {ok, [
+                          {app_name, AppName},
+                          {nodes, Nodes},
+                          {modules, Modules}
+                         ]};
                 false ->
                     rebar_log:log(info, "grizzly doesn't eat ~s application~n", [AppName]),
                     no_grizzly
@@ -56,31 +51,30 @@ deploy_module(NodeName, Module) ->
     {module, Module} = rpc_call(NodeName, code, load_binary, [Module, Filename, Binary]),
     rebar_log:log(info, "~s - loaded~n", [NodeName]).
 
-grizzly_app(#cfg{app_name = AppName}) ->
-    AppName.
-
-grizzly_nodes(#cfg{nodes = Nodes}) ->
-    Nodes.
-
-grizzly_modules(#cfg{modules = Modules}) ->
-    Modules.
-
 get_remote_modules_info(Node, Modules) ->
     rpc_call(Node, ?GRIZZLY_MODULE, get_modules_info, [Modules]).
+
+get_beams_list(Node, AppName) ->
+    BeamFiles = rpc_call(Node, ?GRIZZLY_MODULE, get_beam_list, [AppName]),
+    [list_to_atom(filename:basename(File, ".beam")) || File <- BeamFiles].
 
 get_local_modules_info(Modules) ->
     ?GRIZZLY_MODULE:get_modules_info(Modules).
 
-sync_application_modules(#cfg{app_name = AppName}, Node, Modules) ->
-    ModulesCode = [code:get_object_code(Module) || Module <- Modules],
-    ok = rpc_call(Node, ?GRIZZLY_MODULE, sync_application_modules, [AppName, ModulesCode]).
+sync_application_modules(AppName, Node, ForUpdate, ForDelete) ->
+    ModulesCode = [code:get_object_code(Module) || Module <- ForUpdate],
+    ok = rpc_call(Node, ?GRIZZLY_MODULE, sync_application_modules,
+                  [AppName, ModulesCode, ForDelete]).
 
 check_grizzly_available(Node) ->
     rebar_log:log(debug, "grizzly deploy name: ~s~n", [?GRIZZLY_MODULE]),
 
-    try
-        rpc_call(Node, ?GRIZZLY_MODULE, module_info, [compile])
-    of
+    case rpc:call(Node, ?GRIZZLY_MODULE, module_info, [compile], ?DEFAULT_TIMEOUT) of
+        {badrpc, timeout} ->
+            rebar_log:log(error, "grizzly rpc timeout~n"),
+            erlang:error(timeout);
+        {badrpc, _} ->
+            not_available;
         RemoteModuleInfo ->
             case ?GRIZZLY_MODULE:module_info(compile) of
                 RemoteModuleInfo ->
@@ -88,8 +82,6 @@ check_grizzly_available(Node) ->
                 _ ->
                     not_available
             end
-    catch _:_Reason ->
-            not_available
     end.
 
 start_net_kernel(NodeName) ->
@@ -104,7 +96,7 @@ start_net_kernel(NodeName) ->
     end.
 
 rpc_call(Node, M, F, A) ->
-    rpc_call(Node, M, F, A, 1000).
+    rpc_call(Node, M, F, A, ?DEFAULT_TIMEOUT).
 
 rpc_call(Node, M, F, A, Timeout) ->
     case rpc:call(Node, M, F, A, Timeout) of
