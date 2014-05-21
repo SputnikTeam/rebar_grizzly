@@ -6,7 +6,7 @@ To install this plugin, you need to add it as a dependency to your rebar applica
 
 ```erlang
 {deps, [
-    {rebar_hotsync_plugin, ".*", {git, "https://github.com/tank-bohr/rebar_hotsync_plugin.git"}}
+    {rebar_grizzly, ".*", {git, "https://github.com/SputnikTeam/rebar_grizzly.git"}}
 ]}.
 ```
 
