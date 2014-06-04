@@ -4,8 +4,8 @@
          read_config/2,
          start_net_kernel/1,
          deploy/1,
-         get_remote_modules_info/2,
-         get_local_modules_info/1,
+         get_remote_modules_ct/2,
+         get_local_modules_ct/1,
          sync_application_modules/4,
          get_beams_list/2
         ]).
@@ -21,7 +21,7 @@ read_config(ConfigOriginal, AppSrcFile) ->
         GrizzlyOptions ->
             rebar_log:log(debug, "GrizzlyOptions: ~p~n", [GrizzlyOptions]),
             AppFile = rebar_app_utils:app_src_to_app(AppSrcFile),
-            {Config, AppName}  = rebar_app_utils:app_name(ConfigOriginal, AppFile),
+            {Config, AppName} = rebar_app_utils:app_name(ConfigOriginal, AppFile),
             XconfKey = {appfile, {app_file, AppFile}},
             {AppName, AppData} = rebar_config:get_xconf(Config, XconfKey),
             rebar_log:log(debug, "AppData: ~p~n", [AppData]),
@@ -59,15 +59,22 @@ deploy_module(NodeName, Module) ->
     {module, Module} = rpc_call(NodeName, code, load_binary, [Module, Filename, Binary]),
     rebar_log:log(info, "~s - loaded~n", [NodeName]).
 
-get_remote_modules_info(Node, Modules) ->
-    rpc_call(Node, ?GRIZZLY_MODULE, get_modules_info, [Modules]).
+get_remote_modules_ct(Node, Modules) ->
+    extract_time(rpc_call(Node, ?GRIZZLY_MODULE, get_modules_info, [Modules])).
 
 get_beams_list(Node, AppName) ->
     BeamFiles = rpc_call(Node, ?GRIZZLY_MODULE, get_beams_list, [AppName]),
     [list_to_atom(filename:basename(File, ".beam")) || File <- BeamFiles].
 
-get_local_modules_info(Modules) ->
-    ?GRIZZLY_MODULE:get_modules_info(Modules).
+get_local_modules_ct(Modules) ->
+    extract_time(?GRIZZLY_MODULE:get_modules_info(Modules)).
+
+extract_time(Info) ->
+    lists:map(
+      fun({M, CompileInfo}) ->
+              {M, proplists:get_value(time, CompileInfo)}
+      end,
+      Info).
 
 sync_application_modules(AppName, Node, ForUpdate, ForDelete) ->
     ModulesCode = [code:get_object_code(Module) || Module <- ForUpdate],

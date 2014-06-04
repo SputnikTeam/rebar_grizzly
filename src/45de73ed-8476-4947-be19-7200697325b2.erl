@@ -7,7 +7,14 @@
         ]).
 
 get_modules_info(Modules) ->
-    lists:sort([{Module, (catch Module:module_info(compile))} || Module <- Modules]).
+    lists:sort([{Module, safe_module_info(Module)} || Module <- Modules]).
+
+safe_module_info(Module) ->
+    try
+        Module:module_info(compile)
+    catch _ : _ ->
+            []
+    end.
 
 sync_application_modules(AppName, ForUpdate, ForDelete) ->
     DeployPath = ebin_path(AppName),

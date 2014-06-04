@@ -6,20 +6,25 @@
    ]).
 
 grizzly(Config, AppFile) ->
-    case grizzly_utils:read_config(Config, AppFile) of
-        no_grizzly ->
-            rebar_log:log(info, "No work for grizzly bear~n", []);
-        {ok, GrizzlyConfig} ->
-            AppName = proplists:get_value(app_name, GrizzlyConfig),
-            Nodes   = proplists:get_value(nodes, GrizzlyConfig),
-            Modules = proplists:get_value(modules, GrizzlyConfig),
+    case rebar_app_utils:is_app_dir() of
+        {true, _AppSrcFile} ->
+            case grizzly_utils:read_config(Config, AppFile) of
+                no_grizzly ->
+                    rebar_log:log(info, "No work for grizzly bear~n", []);
+                {ok, GrizzlyConfig} ->
+                    AppName = proplists:get_value(app_name, GrizzlyConfig),
+                    Nodes   = proplists:get_value(nodes, GrizzlyConfig),
+                    Modules = proplists:get_value(modules, GrizzlyConfig),
 
-            rebar_log:log(info, "grizzly config available~n\tapplication: ~p~n\tnodes: ~p~n\tmodules: ~p~n",
-                          [AppName, Nodes, Modules]),
-            grizzly_utils:start_net_kernel('grizzly-node'),
-            lists:foreach(fun grizzly_utils:deploy/1, Nodes),
+                    rebar_log:log(info, "grizzly config available~n\tapplication: ~p~n\tnodes: ~p~n\tmodules: ~p~n",
+                                  [AppName, Nodes, Modules]),
+                    grizzly_utils:start_net_kernel('grizzly-node'),
+                    lists:foreach(fun grizzly_utils:deploy/1, Nodes),
 
-            sync_modules(AppName, Nodes, Modules)
+                    sync_modules(AppName, Nodes, Modules)
+            end;
+        false ->
+            ok
     end.
 
 sync_modules(_AppName, [], _Modules) ->
@@ -27,9 +32,9 @@ sync_modules(_AppName, [], _Modules) ->
 sync_modules(AppName, [Node | NodesTail], Modules) ->
     rebar_log:log(info, "start modules sync on '~s'~n", [Node]),
 
-    RemoteModulesInfo = grizzly_utils:get_remote_modules_info(Node, Modules),
+    RemoteModulesInfo = grizzly_utils:get_remote_modules_ct(Node, Modules),
     true = code:add_path(filename:absname("ebin")), %% add default rebar output path
-    LocalModulesInfo = grizzly_utils:get_local_modules_info(Modules),
+    LocalModulesInfo = grizzly_utils:get_local_modules_ct(Modules),
     ModulesForUpdate = get_modules_for_update(LocalModulesInfo, RemoteModulesInfo),
     ModulesForDelete = get_modules_for_delete(
                          Modules,
@@ -60,10 +65,19 @@ sync_modules(AppName, [Node | NodesTail], Modules) ->
     sync_modules(AppName, NodesTail, Modules).
 
 get_modules_for_update(LocalModulesInfo, RemoteModulesInfo) ->
-    [element(1, Task) || Task <- LocalModulesInfo -- RemoteModulesInfo].
+    lists:foldl(
+      fun({{M, CT1}, {M, CT2}}, AccIn) ->
+              if
+                  CT1 > CT2 ->
+                      [M | AccIn];
+                  true ->
+                      AccIn
+              end
+      end,
+      [],
+      lists:zip(lists:usort(LocalModulesInfo), lists:usort(RemoteModulesInfo))).
 
 get_modules_for_delete(LocalModules, Node, AppName) ->
     RemoteModules = grizzly_utils:get_beams_list(Node, AppName),
-    io:format("remote modules: ~p, local: ~p~n", [RemoteModules, LocalModules]),
     RemoteModules -- LocalModules.
 
