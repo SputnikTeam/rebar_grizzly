@@ -24,6 +24,7 @@ grizzly(Config, AppFile) ->
                     sync_modules(AppName, Nodes, Modules)
             end;
         false ->
+            io:format("not app - ~p~n", [AppFile]),
             ok
     end.
 

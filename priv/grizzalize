@@ -1,31 +1,42 @@
-#!/bin/bash
+#!/usr/bin/env escript
 
-USAGE="$0 <path to rebar.config> [grizzly apps]"
+-define(GRIZZLY_DEP, {rebar_grizzly, ".*", {git, "https://github.com/SputnikTeam/rebar_grizzly.git"}}).
 
-if [ -z $1 ]; then
-    echo $USAGE
-    exit 1
-fi
+main([ConfigPath, AppsString, NodesString]) ->
+    {ok, Config} = file:consult(ConfigPath),
+    Apps = read_separated_attrs(AppsString),
+    Nodes = read_separated_attrs(NodesString),
 
-cat "$1"
+    ConfigOut = [
+                 {plugins, [grizzly] },
+                 {grizzly, [
+                            {apply_for_apps, Apps},
+                            {nodes, Nodes}
+                           ]},
+                  make_deps(Config) | lists:keydelete(deps, 1, Config)
+                ],
+    lists:foreach(
+      fun(X) ->
+              io:format("~p.~n", [X])
+      end,
+      ConfigOut);
+main(["help"]) ->
+    print_usage();
+main(_Args) ->
+    print_usage(),
+    erlang:halt(1).
 
-shift
-APPS=""
-for app in $*; do
-    APPS="$app,$APPS"
-done
-APPS=`echo $APPS | sed 's/,$//g'`
+make_deps(Config) ->
+    case proplists:get_value(deps, Config) of
+        undefined ->
+            {deps, [?GRIZZLY_DEP]};
+        DepsIn ->
+            {deps, [?GRIZZLY_DEP | DepsIn]}
+    end.
 
-echo "{deps, [
-     {rebar_grizzly, \".*\", {git, \"https://github.com/SputnikTeam/rebar_grizzly.git\"}}
-]}.
+read_separated_attrs(String) ->
+    [list_to_atom(App) || App <- string:tokens(String, ":")].
 
-{plugins, [grizzly] }.
-
-{grizzly, [
-    {apply_for_apps, [$APPS]},
-    {nodes, [
-             'kmsearch@collector-dev0.srv.pv.km'
-            ]}
-]}."
+print_usage() ->
+    io:format("Usage: ~s <path to rebar.config> [grizzly apps]~n", [escript:script_name()]).
 
