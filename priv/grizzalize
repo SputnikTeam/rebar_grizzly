@@ -1,0 +1,31 @@
+#!/bin/bash
+
+USAGE="$0 <path to rebar.config> [grizzly apps]"
+
+if [ -z $1 ]; then
+    echo $USAGE
+    exit 1
+fi
+
+cat "$1"
+
+shift
+APPS=""
+for app in $*; do
+    APPS="$app,$APPS"
+done
+APPS=`echo $APPS | sed 's/,$//g'`
+
+echo "{deps, [
+     {rebar_grizzly, \".*\", {git, \"https://github.com/SputnikTeam/rebar_grizzly.git\"}}
+]}.
+
+{plugins, [grizzly] }.
+
+{grizzly, [
+    {apply_for_apps, [$APPS]},
+    {nodes, [
+             'kmsearch@collector-dev0.srv.pv.km'
+            ]}
+]}."
+
