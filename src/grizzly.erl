@@ -15,22 +15,23 @@ grizzly(Config, AppFile) ->
                     AppName = proplists:get_value(app_name, GrizzlyConfig),
                     Nodes   = proplists:get_value(nodes, GrizzlyConfig),
                     Modules = proplists:get_value(modules, GrizzlyConfig),
+                    ExcludeModules = proplists:get_value(exclude_modules, GrizzlyConfig),
 
                     rebar_log:log(info, "grizzly config available~n\tapplication: ~p~n\tnodes: ~p~n\tmodules: ~p~n",
                                   [AppName, Nodes, Modules]),
                     grizzly_utils:start_net_kernel('grizzly-node'),
                     lists:foreach(fun grizzly_utils:deploy/1, Nodes),
 
-                    sync_modules(AppName, Nodes, Modules)
+                    sync_modules(AppName, Nodes, Modules, ExcludeModules)
             end;
         false ->
             io:format("not app - ~p~n", [AppFile]),
             ok
     end.
 
-sync_modules(_AppName, [], _Modules) ->
+sync_modules(_AppName, [], _Modules, _ExcludeModules) ->
     ok;
-sync_modules(AppName, [Node | NodesTail], Modules) ->
+sync_modules(AppName, [Node | NodesTail], Modules, ExcludeModules) ->
     rebar_log:log(info, "start modules sync on '~s'~n", [Node]),
 
     RemoteModulesInfo = grizzly_utils:get_remote_modules_ct(Node, Modules),
@@ -40,7 +41,8 @@ sync_modules(AppName, [Node | NodesTail], Modules) ->
     ModulesForDelete = get_modules_for_delete(
                          Modules,
                          Node,
-                         AppName
+                         AppName,
+                         ExcludeModules
                         ),
 
     rebar_log:log(info, "upload task on '~s':~n\t~p ... ~n",
@@ -63,7 +65,7 @@ sync_modules(AppName, [Node | NodesTail], Modules) ->
 
     rebar_log:log(info, "sync application modules finished~n", []),
 
-    sync_modules(AppName, NodesTail, Modules).
+    sync_modules(AppName, NodesTail, Modules, ExcludeModules).
 
 get_modules_for_update(LocalModulesInfo, RemoteModulesInfo) ->
     lists:foldl(
@@ -78,7 +80,6 @@ get_modules_for_update(LocalModulesInfo, RemoteModulesInfo) ->
       [],
       lists:zip(lists:usort(LocalModulesInfo), lists:usort(RemoteModulesInfo))).
 
-get_modules_for_delete(LocalModules, Node, AppName) ->
-    RemoteModules = grizzly_utils:get_beams_list(Node, AppName),
+get_modules_for_delete(LocalModules, Node, AppName, ExcludeModules) ->
+    RemoteModules = grizzly_utils:get_beams_list(Node, AppName, ExcludeModules),
     RemoteModules -- LocalModules.
-

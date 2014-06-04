@@ -7,7 +7,7 @@
          get_remote_modules_ct/2,
          get_local_modules_ct/1,
          sync_application_modules/4,
-         get_beams_list/2
+         get_beams_list/3
         ]).
 
 -define(DEFAULT_TIMEOUT, 1000).
@@ -29,13 +29,15 @@ read_config(ConfigOriginal, AppSrcFile) ->
             case lists:member(AppName, proplists:get_value(apply_for_apps, GrizzlyOptions)) of
                 true ->
                     rebar_log:log(info, "grizzly starts working with ~s application~n", [AppName]),
-                    Modules = proplists:get_value(modules, AppData, []),
+                    ExcludeModules = proplists:get_value(exclude_modules, GrizzlyOptions, []),
+                    Modules = proplists:get_value(modules, AppData, []) -- ExcludeModules,
                     Nodes = proplists:get_value(nodes, GrizzlyOptions, []),
 
                     {ok, [
                           {app_name, AppName},
                           {nodes, Nodes},
-                          {modules, Modules}
+                          {modules, Modules},
+                          {exclude_modules, ExcludeModules}
                          ]};
                 false ->
                     rebar_log:log(info, "grizzly doesn't eat ~s application~n", [AppName]),
@@ -62,9 +64,9 @@ deploy_module(NodeName, Module) ->
 get_remote_modules_ct(Node, Modules) ->
     extract_time(rpc_call(Node, ?GRIZZLY_MODULE, get_modules_info, [Modules])).
 
-get_beams_list(Node, AppName) ->
+get_beams_list(Node, AppName, ExcludeModules) ->
     BeamFiles = rpc_call(Node, ?GRIZZLY_MODULE, get_beams_list, [AppName]),
-    [list_to_atom(filename:basename(File, ".beam")) || File <- BeamFiles].
+    [list_to_atom(filename:basename(File, ".beam")) || File <- BeamFiles] -- ExcludeModules.
 
 get_local_modules_ct(Modules) ->
     extract_time(?GRIZZLY_MODULE:get_modules_info(Modules)).
