@@ -52,7 +52,7 @@ sync_modules(AppName, [Node | NodesTail], Modules, ExcludeModules) ->
                   ]),
 
     io:format("sync modules on '~s'~n\tupdate modules: ~p~n\tdelete modules: ~p~n",
-              [node(), ModulesForUpdate, ModulesForDelete]),
+              [Node, ModulesForUpdate, ModulesForDelete]),
     
     ok = grizzly_utils:sync_application_modules(
            AppName,
