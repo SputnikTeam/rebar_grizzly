@@ -53,7 +53,7 @@ copy_modules(BasePath, Modules) ->
       Modules).
 
 get_beams_list(AppName) ->
-    filelib:wildcard(filename:join(ebin_path(AppName), "*.beam")).
+    filelib:wildcard(filename:join(ebin_path(AppName), [$* | code:objfile_extension()])).
 
 ebin_path(AppName) ->
     case code:lib_dir(AppName, ebin) of
@@ -64,5 +64,5 @@ ebin_path(AppName) ->
     end.
 
 beam_path(DeployPath, Module) ->
-    filename:join(DeployPath, atom_to_list(Module) ++ ".beam").
+    filename:join(DeployPath, atom_to_list(Module) ++ code:objfile_extension()).
 
