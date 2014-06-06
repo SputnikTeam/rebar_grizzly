@@ -53,12 +53,18 @@ copy_modules(BasePath, Modules) ->
       Modules).
 
 get_beams_list(AppName) ->
-    filelib:wildcard(filename:join(ebin_path(AppName), [$* | code:objfile_extension()])).
+    filelib:wildcard(
+        ebin_path(AppName, [$* | code:objfile_extension()])
+    ).
 
-ebin_path(AppName) ->
-    case code:lib_dir(AppName, ebin) of
-        {error, Reason} ->
-            erlang:error(Reason);
+ebin_path(App, Path) ->
+    filename:join(ebin_path(App), Path).
+    
+ebin_path(App) ->
+    case code:lib_dir(App, ebin) of
+        {error, bad_name} ->
+            AppName = atom_to_binary(App, utf8)
+            erlang:error({badarg, <<"Can't resolve the ebin of application ", AppName/binary>>});
         Path ->
             Path
     end.
