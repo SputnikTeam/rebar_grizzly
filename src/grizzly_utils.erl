@@ -66,7 +66,7 @@ get_remote_modules_ct(Node, Modules) ->
 
 get_beams_list(Node, AppName, ExcludeModules) ->
     BeamFiles = rpc_call(Node, ?GRIZZLY_MODULE, get_beams_list, [AppName]),
-    [list_to_atom(filename:basename(File, ".beam")) || File <- BeamFiles] -- ExcludeModules.
+    [list_to_atom(filename:basename(File, code:objfile_extension())) || File <- BeamFiles] -- ExcludeModules.
 
 get_local_modules_ct(Modules) ->
     extract_time(?GRIZZLY_MODULE:get_modules_info(Modules)).
