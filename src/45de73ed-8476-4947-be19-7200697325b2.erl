@@ -63,7 +63,7 @@ ebin_path(App, Path) ->
 ebin_path(App) ->
     case code:lib_dir(App, ebin) of
         {error, bad_name} ->
-            AppName = atom_to_binary(App, utf8)
+            AppName = atom_to_binary(App, utf8),
             erlang:error({bad_name, <<"Can't resolve the ebin of application ", AppName/binary>>});
         Path ->
             Path
