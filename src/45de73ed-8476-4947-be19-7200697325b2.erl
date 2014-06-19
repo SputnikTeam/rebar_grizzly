@@ -11,7 +11,7 @@ get_modules_info(Modules) ->
 
 safe_module_info(Module) ->
     try
-        Module:module_info(compile)
+        Module:module_info()
     catch _ : _ ->
             []
     end.

@@ -30,7 +30,8 @@ To let rebar know about the new plugin add the folowing line to your `rebar.conf
         bear@some-host-2.blah.local,
         bear@some-host-3.blah.local,
         bear@some-host-4.blah.local
-    ]}
+    ]},
+    {compare_by, module_vsn_attribute} %% module_vsn_attribute | module_compile_time
 ]}.
 ```
 
@@ -42,3 +43,4 @@ To let rebar know about the new plugin add the folowing line to your `rebar.conf
 ## License
 
 a kind of MIT
+
