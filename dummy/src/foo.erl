@@ -6,7 +6,7 @@ start() ->
     ok = application:start(dummy).
 
 foo() ->
-    bar().
+    {bar(), rebar}.
 
 bar() ->
     rebar.

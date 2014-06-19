@@ -4,10 +4,11 @@
          read_config/2,
          start_net_kernel/1,
          deploy/1,
-         get_remote_modules_ct/2,
-         get_local_modules_ct/1,
+         get_remote_modules_compare_info/3,
+         get_local_modules_compare_info/2,
          sync_application_modules/4,
-         get_beams_list/3
+         get_beams_list/3,
+         get_application_modules/2
         ]).
 
 -define(DEFAULT_TIMEOUT, 1000).
@@ -32,12 +33,14 @@ read_config(ConfigOriginal, AppSrcFile) ->
                     ExcludeModules = proplists:get_value(exclude_modules, GrizzlyOptions, []),
                     Modules = proplists:get_value(modules, AppData, []) -- ExcludeModules,
                     Nodes = proplists:get_value(nodes, GrizzlyOptions, []),
+                    CompareBy = proplists:get_value(compare_by, GrizzlyOptions),
 
                     {ok, [
                           {app_name, AppName},
                           {nodes, Nodes},
                           {modules, Modules},
-                          {exclude_modules, ExcludeModules}
+                          {exclude_modules, ExcludeModules},
+                          {compare_by, CompareBy}
                          ]};
                 false ->
                     rebar_log:log(info, "grizzly doesn't eat ~s application~n", [AppName]),
@@ -61,20 +64,52 @@ deploy_module(NodeName, Module) ->
     {module, Module} = rpc_call(NodeName, code, load_binary, [Module, Filename, Binary]),
     rebar_log:log(info, "~s - loaded~n", [NodeName]).
 
-get_remote_modules_ct(Node, Modules) ->
-    extract_time(rpc_call(Node, ?GRIZZLY_MODULE, get_modules_info, [Modules])).
+get_remote_modules_compare_info(Node, Modules, CompareBy) ->
+    ModulesInfo = rpc_call(Node, ?GRIZZLY_MODULE, get_modules_info, [Modules]),
+    modules_compare_info(CompareBy, ModulesInfo).
+
+get_local_modules_compare_info(Modules, CompareBy) ->
+    modules_compare_info(CompareBy, ?GRIZZLY_MODULE:get_modules_info(Modules)).
 
 get_beams_list(Node, AppName, ExcludeModules) ->
     BeamFiles = rpc_call(Node, ?GRIZZLY_MODULE, get_beams_list, [AppName]),
     [list_to_atom(filename:basename(File, code:objfile_extension())) || File <- BeamFiles] -- ExcludeModules.
 
-get_local_modules_ct(Modules) ->
-    extract_time(?GRIZZLY_MODULE:get_modules_info(Modules)).
+get_application_modules(Node, AppName) ->
+    try
+        rpc_call(Node, application, get_key, [AppName, modules])
+    of
+        {ok, AppFileModules} ->
+            AppFileModules
+    catch _ : _ ->
+            [] %% if app not started delete any modules
+    end.
+
+modules_compare_info(CompareBy, ModulesInfo) ->
+    case CompareBy of
+        module_vsn_attribute ->
+            extract_vsn(ModulesInfo);
+        module_compile_time ->
+            extract_time(ModulesInfo);
+        InvalidValue ->
+            rebar_log:log(error,
+                          "invalid compare_by option '~p', use default - module_compile_time~n",
+                          [InvalidValue]),
+            extract_vsn(ModulesInfo)
+    end.
 
 extract_time(Info) ->
     lists:map(
-      fun({M, CompileInfo}) ->
-              {M, proplists:get_value(time, CompileInfo)}
+      fun({Module, ModuleInfo}) ->
+              {Module, proplists:get_value(time, proplists:get_value(compile, ModuleInfo))}
+      end,
+      Info).
+
+extract_vsn(Info) ->
+    lists:map(
+      fun({Module, ModuleInfo}) ->
+              {Module,
+               proplists:get_value(vsn, proplists:get_value(attributes, ModuleInfo, []))}
       end,
       Info).
 
