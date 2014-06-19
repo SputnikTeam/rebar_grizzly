@@ -82,4 +82,6 @@ get_modules_for_update(LocalModulesInfo, RemoteModulesInfo) ->
 
 get_modules_for_delete(LocalModules, Node, AppName, ExcludeModules) ->
     RemoteModules = grizzly_utils:get_beams_list(Node, AppName, ExcludeModules),
-    RemoteModules -- LocalModules.
+    RemoteAppModules = grizzly_utils:get_application_modules(Node, AppName),
+    DeletableModules = RemoteModules -- RemoteAppModules,
+    DeletableModules -- LocalModules.
