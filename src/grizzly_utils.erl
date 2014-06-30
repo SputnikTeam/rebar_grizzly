@@ -11,7 +11,7 @@
          get_application_modules/2
         ]).
 
--define(DEFAULT_TIMEOUT, 1000).
+-define(DEFAULT_TIMEOUT, 5000).
 -define(GRIZZLY_MODULE, '45de73ed-8476-4947-be19-7200697325b2').
 
 read_config(ConfigOriginal, AppSrcFile) ->
@@ -101,7 +101,7 @@ modules_compare_info(CompareBy, ModulesInfo) ->
 extract_time(Info) ->
     lists:map(
       fun({Module, ModuleInfo}) ->
-              {Module, proplists:get_value(time, proplists:get_value(compile, ModuleInfo))}
+              {Module, proplists:get_value(time, proplists:get_value(compile, ModuleInfo, []))}
       end,
       Info).
 
