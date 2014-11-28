@@ -1,4 +1,5 @@
 # Rebar grizzly plugin
+[![Build Status](https://travis-ci.org/SputnikTeam/rebar_grizzly.svg)](https://travis-ci.org/SputnikTeam/rebar_grizzly)
 
 Rebar plugin for erlang hot code upgrade. Synchronizes (reload and _save_) beam files on remote nodes with your application's `ebin` dir.
 
@@ -43,4 +44,3 @@ To let rebar know about the new plugin add the folowing line to your `rebar.conf
 ## License
 
 a kind of MIT
-
